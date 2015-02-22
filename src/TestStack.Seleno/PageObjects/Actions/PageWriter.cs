@@ -48,14 +48,24 @@ namespace TestStack.Seleno.PageObjects.Actions
             if (customAttributes.OfType<ReadOnlyAttribute>().Any(x => x.IsReadOnly))
                 return;
 
-            var propertyValue = property.GetValue(o, null);
+            object propertyValue;
+            
+            try
+            {
+                propertyValue = property.GetValue(o, null);
+            }
+            catch (TargetParameterCountException) // thrown if trying to call GetValue from a Dictionary
+            {
+                propertyValue = null;
+            }
+            
             if (propertyValue == null)
                 return;
 
             var p = Expression.Property(expression != null ? expression.Body : parentParameter, property);
             var propertyExpression = Expression.Lambda(p, parentParameter);
 
-            if (!property.PropertyType.IsValueType && property.PropertyType != typeof (string))
+            if (!property.PropertyType.IsValueType && property.PropertyType != typeof(string))
             {
                 Input(propertyValue, parentParameter, propertyExpression, propertyTypeHandling);
                 return;
@@ -65,6 +75,7 @@ namespace TestStack.Seleno.PageObjects.Actions
 
             _componentFactory.HtmlControlFor<TextBox>(propertyExpression)
                 .ReplaceInputValueWith(stringValue);
+            
         }
 
         public void Model(TModel viewModel, IDictionary<Type, Func<object, string>> propertyTypeHandling = null, params string[] propertyBlacklist)
